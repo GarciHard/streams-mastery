@@ -1,0 +1,22 @@
+-------------------------------------------------------------------------------
+Test set: com.streammastery.exercises.Exercise01_LambdaFoundations
+-------------------------------------------------------------------------------
+Tests run: 20, Failures: 2, Errors: 0, Skipped: 0, Time elapsed: 0.062 s <<< FAILURE! -- in com.streammastery.exercises.Exercise01_LambdaFoundations
+com.streammastery.exercises.Exercise01_LambdaFoundations.exercise19_curriedFunction -- Time elapsed: 0.003 s <<< FAILURE!
+java.lang.AssertionError: 
+
+Expecting actual not to be null
+	at com.streammastery.exercises.Exercise01_LambdaFoundations.exercise19_curriedFunction(Exercise01_LambdaFoundations.java:411)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:583)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+
+com.streammastery.exercises.Exercise01_LambdaFoundations.exercise20_declarativeRuleEngine -- Time elapsed: 0.001 s <<< FAILURE!
+java.lang.AssertionError: 
+
+Expecting actual not to be null
+	at com.streammastery.exercises.Exercise01_LambdaFoundations.exercise20_declarativeRuleEngine(Exercise01_LambdaFoundations.java:433)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:583)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+
