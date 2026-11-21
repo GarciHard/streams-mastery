@@ -73,15 +73,22 @@ public class Exercise02_StreamCreation {
         // Hint: Iterate over int[] pairs: [a, b] -> [b, a + b], map to pair[0]
         // TODO: Replace null with your Stream.iterate implementation
 
-        UnaryOperator<Integer> fibo = num -> num == 0 || num == 1 ? num : (num - 1) + (num - 2);
+//        UnaryOperator<Integer> fibo = num -> num == 0 || num == 1 ? num : (num - 1) + (num - 2);
 
-        List<Integer> fibonacci = Stream.iterate(0, n -> n < 10, fibo).toList();
+//        List<Integer> fibonacci = Stream.iterate(0, n -> n < 10, fibo).toList();
 //        List<Integer> fibonacci = null;
 //
-//        assertThat(fibonacci).isNotNull();
-//        assertThat(fibonacci).containsExactly(0, 1, 1, 2, 3, 5, 8, 13, 21, 34);
 
-        List<Integer> list = new ArrayList<>();
+        List<Integer> fibonacci = Stream.iterate(new int[]{0, 1},
+                        pair -> new int[]{pair[1], pair[0] + pair[1]})
+                .map(pair -> pair[1])
+                .limit(10)
+                .toList();
+
+        assertThat(fibonacci).isNotNull();
+        assertThat(fibonacci).containsExactly(0, 1, 1, 2, 3, 5, 8, 13, 21, 34);
+
+/*        List<Integer> list = new ArrayList<>();
         for (int idx = 0; idx <= 3; idx++) {
             if ( idx == 0 || idx == 1 ) {
                 list.add(idx);
@@ -89,7 +96,7 @@ public class Exercise02_StreamCreation {
             }
             int tmp = (idx - 1) + (idx - 2);
             list.add(tmp);
-        }
+        }*/
 
     }
 
