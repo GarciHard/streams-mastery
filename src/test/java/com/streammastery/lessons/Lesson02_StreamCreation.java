@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * <p>
  * A Java Stream is <b>NOT</b> a data structure. It does not store elements in memory.
  * It is an <i>on-demand computational pipeline</i> that pulls data from a source (Collection, Array,
- * I/O channel, Generator function), pushes it through intermediate operations (filter, map),
+ * I/O channel, Generator function, Sequenced view), pushes it through intermediate operations (filter, map),
  * and terminates with a final result (reduction, collection).
  * </p>
  *
@@ -46,6 +46,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  *   <li>{@code Stream.iterate(T seed, UnaryOperator<T> f)}: Sequential sequence generation: $s, f(s), f(f(s))\dots$</li>
  *   <li>{@code Stream.iterate(T seed, Predicate hasNext, UnaryOperator f)} (Java 9+): Stream equivalent of a traditional for-loop!</li>
  * </ul>
+ *
+ * <h2>4. Modern Stream Sources (Java 21+ Sequenced Collections):</h2>
+ * <p>
+ * Java 21 introduced {@link SequencedCollection}, allowing any ordered collection (List, Deque, LinkedHashSet)
+ * to be streamed in reverse directly via {@code collection.reversed().stream()} without any intermediate array copies.
+ * </p>
  */
 public class Lesson02_StreamCreation {
 
@@ -209,5 +215,21 @@ public class Lesson02_StreamCreation {
         assertThatThrownBy(techStream::toList)
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("stream has already been operated upon or closed");
+    }
+
+    /**
+     * SAMPLE 7: Sequenced Collections Reversed Stream (Java 21+)
+     * What this demonstrates:
+     * - Streaming in reverse encounter order without sorting or array allocation.
+     */
+    @Test
+    @DisplayName("07. Modern Stream Sources: SequencedCollection.reversed().stream() (Java 21+)")
+    void demonstrateSequencedCollectionStream() {
+        List<String> pipelineStages = List.of("Extract", "Transform", "Load");
+
+        // Java 21 reversed stream view
+        List<String> reverseOrder = pipelineStages.reversed().stream().toList();
+
+        assertThat(reverseOrder).containsExactly("Load", "Transform", "Extract");
     }
 }

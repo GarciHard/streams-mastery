@@ -34,11 +34,17 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  *       Guaranteed unmodifiable.</li>
  * </ul>
  *
- * <h2>3. Collectors.toMap Collision Handling:</h2>
+ * <h2>3. Collectors.toMap Collision Handling & Java 22 Unnamed Variables:</h2>
  * <p>
  * {@code Collectors.toMap(keyMapper, valueMapper)} throws {@link IllegalStateException} if duplicate keys exist!
- * In production systems, <b>ALWAYS</b> specify the merge function:
- * {@code Collectors.toMap(keyMapper, valueMapper, (existing, replacement) -> ...)}
+ * In production systems, <b>ALWAYS</b> specify the merge function. With Java 22+, if you discard one of the values,
+ * use the unnamed variable {@code _} cleanly: {@code (existing, _) -> existing}.
+ * </p>
+ *
+ * <h2>4. Java 21 Sequenced Collections Integration:</h2>
+ * <p>
+ * {@code Collectors.toCollection(LinkedHashSet::new)} produces a {@link SequencedSet},
+ * allowing direct access to {@code getFirst()}, {@code getLast()}, and {@code reversed()} on stream results!
  * </p>
  */
 public class Lesson07_CollectingResults {
@@ -126,5 +132,37 @@ public class Lesson07_CollectingResults {
         assertThat(unmodifiableCities).contains("San Francisco", "Seattle");
         assertThatThrownBy(() -> unmodifiableCities.add("Paris"))
                 .isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    /**
+     * SAMPLE 5: Collecting to Sequenced Collections & Java 22 Unnamed Variables
+     * What this demonstrates:
+     * - Collecting into a SequencedSet (LinkedHashSet) preserving encounter order with getFirst() / getLast().
+     * - Using Java 22 unnamed variable '_' in map merge functions when discarding duplicate values.
+     */
+    @Test
+    @DisplayName("05. Java 21 Sequenced Collections & Java 22 Unnamed Variables")
+    void demonstrateSequencedCollectionAndUnnamedVariables() {
+        List<Employee> employees = DataFactory.getEmployees();
+
+        // 1. Collect to SequencedSet (LinkedHashSet) to retain encounter order with O(1) deduplication:
+        SequencedSet<String> departments = employees.stream()
+                .map(Employee::getDepartment)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        assertThat(departments.getFirst()).isEqualTo("Engineering");
+        assertThat(departments.getLast()).isNotNull();
+
+        // 2. Java 22 unnamed variable `_` in toMap merge function:
+        // Keep FIRST encountered employee per city, ignoring replacement with `_`
+        Map<String, String> firstEmployeePerCity = employees.stream()
+                .collect(Collectors.toMap(
+                        Employee::getCity,
+                        Employee::getFullName,
+                        (existing, _) -> existing // Ignore replacement using unnamed variable _
+                ));
+
+        assertThat(firstEmployeePerCity).containsKey("San Francisco");
+        assertThat(firstEmployeePerCity.get("San Francisco")).isEqualTo("Alice Johnson");
     }
 }

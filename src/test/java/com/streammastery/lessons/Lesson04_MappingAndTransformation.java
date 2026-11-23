@@ -13,23 +13,30 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * ====================================================================================================
- * LESSON 04: MAPPING, TRANSFORMATION & FLATMAP
+ * LESSON 04: MAPPING, TRANSFORMATION, FLATMAP & MAPMULTI
  * ====================================================================================================
  *
- * <h2>1. map(T -> R) vs flatMap(T -> Stream&lt;R&gt;) (The Functor vs Monad Duality)</h2>
+ * <h2>1. The Transformation Spectrum: map vs flatMap vs mapMulti</h2>
  * <ul>
- *   <li><b>{@code map}:</b> One-to-One transformation. For every input element $T$, exactly ONE output element $R$ is emitted.
- *       Use for: Entity-to-DTO conversion, field extraction, type casting, mathematical scaling.</li>
- *   <li><b>{@code flatMap}:</b> One-to-Many (or One-to-Zero) transformation. For each input $T$, a {@code Stream<R>} is created,
- *       and all resulting streams are flattened into a single contiguous output stream!
- *       Use for: Unpacking nested collections, unwrapping Optionals, cross-joins, tokenizing sentences into words.</li>
+ *   <li><b>{@code map(T -> R)} (Functor):</b> One-to-One transformation. For every input element $T$,
+ *       exactly ONE output element $R$ is emitted.
+ *       <br><i>Use for:</i> Entity-to-DTO conversion, field extraction, type casting, mathematical scaling.</li>
+ *   <li><b>{@code flatMap(T -> Stream<R>)} (Monad):</b> One-to-Many (or One-to-Zero) transformation.
+ *       For each input $T$, a new {@code Stream<R>} instance is created, and all resulting streams are flattened.
+ *       <br><i>Cost:</i> Allocates an intermediate {@code Stream} object per element, stressing the Garbage Collector!
+ *       <br><i>Use for:</i> Unpacking nested collections, unwrapping Optionals, cross-joins.</li>
+ *   <li><b>{@code mapMulti(BiConsumer<T, Consumer<R>>)} (Java 16+ / Modern):</b> Push-based One-to-Many (or 0..N).
+ *       Instead of creating intermediate {@code Stream} objects, elements are pushed imperatively to a downstream consumer!
+ *       <br><i>Advantage:</i> <b>Zero stream allocation overhead</b>. Up to 2-4x faster than {@code flatMap} in high-throughput hot paths.
+ *       <br><i>Use for:</i> 1-to-0..N mapping, tokenizing words, expanding small collections, conditionally emitting multiple values.</li>
  * </ul>
  *
  * <h2>2. Primitive Specializations (Zero-Allocation Rule):</h2>
  * <p>
- * Always use {@code mapToInt()}, {@code mapToLong()}, and {@code mapToDouble()} when mapping to numbers.
+ * Always use {@code mapToInt()}, {@code mapToLong()}, {@code mapToDouble()}, and {@code mapMultiToInt()} when mapping to numbers.
  * Calling {@code map(Employee::getSalary).reduce(0.0, Double::sum)} allocates thousands of {@code java.lang.Double} wrapper objects,
- * stressing the JVM Garbage Collector. Primitive streams perform accumulation in unboxed CPU registers.
+ * thrashing CPU L1/L2 caches and stressing the JVM Garbage Collector.
+ * Primitive streams perform accumulation directly in unboxed CPU registers.
  * </p>
  */
 public class Lesson04_MappingAndTransformation {
@@ -149,10 +156,59 @@ public class Lesson04_MappingAndTransformation {
                 .filter(e -> "Engineering".equals(e.getDepartment()))
                 .map(Employee::getSalary)
                 .map(salary -> salary * 1.10)
-                .map(raised -> String.format("$%,.2f", raised))
+                .map(raised -> String.format(Locale.US, "$%,.2f", raised))
                 .limit(3)
                 .toList();
 
         assertThat(formattedRaises.get(0)).isEqualTo("$203,500.00"); // Alice: 185k * 1.10
+    }
+
+    /**
+     * SAMPLE 6: mapMulti() for Zero-Allocation 1-to-0..N Expansions (Modern Java)
+     * What this demonstrates:
+     * - mapMulti replaces flatMap when emitting 0, 1, or multiple items per element.
+     * - Eliminates allocating a new Stream object per upstream item!
+     */
+    @Test
+    @DisplayName("06. mapMulti(): High-Throughput Push-Based Transformation (Zero-Allocation)")
+    void demonstrateMapMulti() {
+        List<Order> orders = DataFactory.getOrders();
+
+        // Push order items whose total price exceeds $100 directly to downstream consumer:
+        List<String> expensiveItemNames = orders.stream()
+                .<String>mapMulti((order, consumer) -> {
+                    for (OrderItem item : order.getItems()) {
+                        if (item.getPrice() * item.getQuantity() > 100.0) {
+                            consumer.accept(item.getProductName());
+                        }
+                    }
+                })
+                .distinct()
+                .toList();
+
+        assertThat(expensiveItemNames).isNotEmpty();
+        assertThat(expensiveItemNames).contains("MacBook Pro 16\"", "Sony WH-1000XM5");
+    }
+
+    /**
+     * SAMPLE 7: mapMultiToInt() Primitive Push Transformation
+     * What this demonstrates:
+     * - Streaming directly into primitive IntStream without intermediate Stream<Integer> or boxing.
+     */
+    @Test
+    @DisplayName("07. mapMultiToInt(): Unboxed Primitive Expansion")
+    void demonstrateMapMultiToInt() {
+        List<String> commaSeparatedNumbers = List.of("10,20,30", "40,50", "60");
+
+        // mapMultiToInt pushes unboxed ints directly into an IntStream:
+        int sum = commaSeparatedNumbers.stream()
+                .mapMultiToInt((str, intConsumer) -> {
+                    for (String token : str.split(",")) {
+                        intConsumer.accept(Integer.parseInt(token.trim()));
+                    }
+                })
+                .sum();
+
+        assertThat(sum).isEqualTo(10 + 20 + 30 + 40 + 50 + 60);
     }
 }

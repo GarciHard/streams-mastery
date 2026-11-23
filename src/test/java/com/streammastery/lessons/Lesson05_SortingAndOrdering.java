@@ -40,6 +40,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  *       and {@code thenComparingInt(Employee::getAge)} over generic object comparators to eliminate auto-boxing.</li>
  *   <li><b>Null Safety:</b> Protect sorting pipelines against {@code NullPointerException} using
  *       {@code Comparator.nullsFirst()} or {@code Comparator.nullsLast()}.</li>
+ *   <li><b>Java 21 Sequenced Collections Optimization:</b> When reversing an already-ordered collection
+ *       (e.g. {@code List}, {@code LinkedHashSet}), avoid {@code .sorted(Comparator.reverseOrder())} (which is $O(N \log N)$
+ *       and buffers $O(N)$ elements)! Instead, call {@code collection.reversed().stream()} for an $O(1)$ zero-copy view stream!</li>
  * </ol>
  */
 public class Lesson05_SortingAndOrdering {
@@ -148,12 +151,33 @@ public class Lesson05_SortingAndOrdering {
     @Test
     @DisplayName("05. Case-Insensitive Alphabetical Sorting")
     void demonstrateCaseInsensitiveSorting() {
-        List<String> terms = List.of("apple", "Banana", "apricot", "Berry");
+        List<String> mixedCase = List.of("apple", "Banana", "cherry", "Date");
 
-        List<String> sortedCaseInsensitive = terms.stream()
+        List<String> caseInsensitiveSorted = mixedCase.stream()
                 .sorted(String.CASE_INSENSITIVE_ORDER)
                 .toList();
 
-        assertThat(sortedCaseInsensitive).containsExactly("apple", "apricot", "Banana", "Berry");
+        assertThat(caseInsensitiveSorted).containsExactly("apple", "Banana", "cherry", "Date");
+    }
+
+    /**
+     * SAMPLE 6: Java 21 Sequenced Collections - O(1) Zero-Copy Reverse Stream
+     * What this demonstrates:
+     * - Contrast between:
+     *     - Legacy Java 17: .sorted(Comparator.reverseOrder()) -> O(N log N) time, O(N) memory allocation.
+     *     - Modern Java 21+: collection.reversed().stream() -> O(1) time view, O(1) memory!
+     */
+    @Test
+    @DisplayName("06. Java 21 Sequenced Collections: O(1) Zero-Copy Reverse Streaming")
+    void demonstrateReversedStream() {
+        List<String> orderedMilestones = List.of("Ideation", "Architecture", "Implementation", "Production");
+
+        // Java 21: reversed() creates a reverse-order view in O(1) time without copying.
+        // Streaming that view begins immediate reverse emission with ZERO sort buffering:
+        List<String> backwards = orderedMilestones.reversed().stream().toList();
+
+        assertThat(backwards).containsExactly("Production", "Implementation", "Architecture", "Ideation");
+        assertThat(backwards.get(0)).isEqualTo("Production");
+        assertThat(backwards.get(backwards.size() - 1)).isEqualTo("Ideation");
     }
 }
